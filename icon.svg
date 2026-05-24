@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5B4EE8"/>
+      <stop offset="1" stop-color="#9B8BFF"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="rgba(255,255,255,0.18)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#shine)"/>
+
+  <!-- Camisa / prenda simplificada -->
+  <!-- Cuello -->
+  <path d="M220 118 Q256 148 292 118" fill="none" stroke="white" stroke-width="26" stroke-linecap="round"/>
+  <!-- Mangas izquierda -->
+  <path d="M220 118 L130 170 L148 210 L210 178" fill="white" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Mangas derecha -->
+  <path d="M292 118 L382 170 L364 210 L302 178" fill="white" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Cuerpo -->
+  <rect x="178" y="168" width="156" height="190" rx="16" fill="white"/>
+  <!-- Dobladillo -->
+  <rect x="178" y="338" width="156" height="20" rx="8" fill="rgba(91,78,232,0.18)"/>
+
+  <!-- Punto de cámara (fotos) -->
+  <circle cx="380" cy="370" r="72" fill="#5B4EE8"/>
+  <circle cx="380" cy="370" r="72" fill="rgba(0,0,0,0.15)"/>
+  <rect x="316" y="340" width="128" height="90" rx="14" fill="none" stroke="white" stroke-width="14"/>
+  <circle cx="380" cy="385" r="26" fill="none" stroke="white" stroke-width="14"/>
+  <rect x="346" y="328" width="36" height="20" rx="6" fill="white"/>
+</svg>

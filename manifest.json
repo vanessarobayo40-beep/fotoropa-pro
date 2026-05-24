@@ -1,0 +1,35 @@
+{
+  "name": "FotoRopa Pro",
+  "short_name": "FotoRopa",
+  "description": "Genera 10 fotos profesionales de tu ropa usada a partir de 4 fotos reales",
+  "start_url": "/FotoRopaPro.html",
+  "display": "standalone",
+  "background_color": "#F4F3FF",
+  "theme_color": "#5B4EE8",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": ["productivity", "photo"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nueva prenda",
+      "short_name": "Nueva",
+      "description": "Empezar con una nueva prenda",
+      "url": "/FotoRopaPro.html"
+    }
+  ]
+}
