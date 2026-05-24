@@ -698,23 +698,23 @@
 
 <!-- ═══ TIPS ═══ -->
 <div class="tips-card fade-up">
-  <div class="tips-head">📋 Protocolo de las 4 fotos perfectas</div>
+  <div class="tips-head">📋 Cómo tomar las 4 fotos exactas</div>
   <div class="tips-grid">
     <div class="tip-item">
-      <div class="tip-label">👕 Foto 1 — Frontal</div>
-      <div class="tip-text">Prenda centrada en el piso, bien estirada sin arrugas. Cámara directo desde arriba. Tarjeta de marca visible en la esquina inferior.</div>
+      <div class="tip-label">👕 Foto 1 — Frontal completo</div>
+      <div class="tip-text">Extiende la prenda en el piso bien estirada. Cámara desde arriba, centrada, toda la prenda visible. Tarjeta de marca apoyada en la esquina inferior izquierda.</div>
     </div>
     <div class="tip-item">
-      <div class="tip-label">🔄 Foto 2 — Trasero</div>
-      <div class="tip-text">Mismo encuadre y posición. Voltea la prenda manteniendo la tarjeta de marca en el mismo lugar.</div>
+      <div class="tip-label">🔄 Foto 2 — Trasero completo</div>
+      <div class="tip-text">Voltea la prenda exactamente en el mismo lugar. Mantén el mismo encuadre. Pon la tarjeta de marca al lado derecho o abajo derecha.</div>
     </div>
     <div class="tip-item">
       <div class="tip-label">🏷️ Foto 3 — Detalle de marca</div>
-      <div class="tip-text">Acércate a la etiqueta de cuero, botón o logo interior. Debe verse nítido el branding de la prenda.</div>
+      <div class="tip-text">Acércate a la zona del logo: deben verse en un solo encuadre la tarjeta de marca, la etiqueta de cuero/patch y el botón principal. Bien iluminado y nítido.</div>
     </div>
     <div class="tip-item">
-      <div class="tip-label">🔍 Foto 4 — Detalle especial</div>
-      <div class="tip-text">Rotura, bolsillos, etiqueta de talla, forro interior. Lo que hace única a esta prenda o informa sobre su condición.</div>
+      <div class="tip-label">🔍 Foto 4 — Interior / talla</div>
+      <div class="tip-text">Abre la prenda y muestra la etiqueta de talla sosteniéndola con la mano. O muestra el interior con el forro y el número de referencia. También sirve la rotura principal.</div>
     </div>
   </div>
 </div>
@@ -729,25 +729,25 @@
 <script>
 /* ─── CONFIGURACIÓN DE ZONAS ─── */
 const ZONES_CFG = [
-  { id:0, icon:'👕', label:'Frontal completo',  hint:'Toda la prenda de frente' },
-  { id:1, icon:'🔄', label:'Trasero completo',  hint:'Toda la prenda de atrás'  },
-  { id:2, icon:'🏷️', label:'Detalle de marca',  hint:'Botón, logo, etiqueta'    },
-  { id:3, icon:'🔍', label:'Detalle especial',  hint:'Interior, rotura, talla'  },
+  { id:0, icon:'👕', label:'Frontal completo',  hint:'Prenda extendida en el piso, vista desde arriba, tarjeta de marca abajo izquierda' },
+  { id:1, icon:'🔄', label:'Trasero completo',  hint:'Voltea la prenda, misma posición, tarjeta de marca a la derecha'                   },
+  { id:2, icon:'🏷️', label:'Detalle de marca',  hint:'Acércate: tarjeta de marca + etiqueta de cuero + botón en un solo encuadre'       },
+  { id:3, icon:'🔍', label:'Interior / talla',  hint:'Abre la prenda, muestra la etiqueta de talla con la mano o el defecto principal'  },
 ];
 
 /* ─── PASOS DE GENERACIÓN ─── */
 const STEPS_CFG = [
-  { icon:'✂️',  label:'Cortando parte superior frontal…'  },
-  { icon:'✂️',  label:'Cortando parte inferior frontal…'  },
-  { icon:'🔄',  label:'Creando ángulo diagonal…'          },
-  { icon:'✂️',  label:'Cortando parte superior trasera…'  },
-  { icon:'⬜',  label:'Creando formato cuadrado 1:1…'     },
-  { icon:'📱',  label:'Creando formato Stories 16:9…'     },
+  { icon:'↔️',  label:'Creando encuadre abierto frontal…'  },
+  { icon:'↗️',  label:'Creando diagonal derecha…'           },
+  { icon:'↖️',  label:'Creando diagonal izquierda…'         },
+  { icon:'🔍',  label:'Creando macro de detalle de marca…'  },
+  { icon:'🔄',  label:'Creando trasero en diagonal…'        },
+  { icon:'✂️',  label:'Recortando zona de bolsillos…'       },
 ];
 
 const GEN_LABELS = [
-  'Superior frontal', 'Inferior frontal', 'Ángulo diagonal',
-  'Superior trasero', 'Cuadrado Feed',    'Horizontal Stories',
+  'Encuadre abierto', 'Diagonal derecha', 'Diagonal izquierda',
+  'Macro de marca',   'Trasero diagonal', 'Bolsillos traseros',
 ];
 
 /* ─── ESTADO ─── */
@@ -840,21 +840,26 @@ function rotateBmp(bmp, deg) {
   return c;
 }
 
-function squareBmp(bmp) {
-  const s = Math.min(bmp.width, bmp.height);
-  const c = makeCanvas(s, s);
-  c.getContext('2d').drawImage(bmp, (bmp.width-s)/2, (bmp.height-s)/2, s, s, 0, 0, s, s);
+/* Agrega piso alrededor para simular encuadre más abierto (foto desde más lejos) */
+function addPadding(bmp, pad) {
+  const pw = Math.round(bmp.width * pad);
+  const ph = Math.round(bmp.height * pad);
+  const c  = makeCanvas(bmp.width + pw*2, bmp.height + ph*2);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#CFC2B0';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(bmp, pw, ph);
   return c;
 }
 
-function landscapeBmp(bmp) {
-  const ar = 16/9;
-  let cw = bmp.width, ch = Math.round(bmp.width/ar);
-  if (ch > bmp.height) { ch = bmp.height; cw = Math.round(bmp.height*ar); }
-  const sx = (bmp.width-cw)/2, sy = (bmp.height-ch)/2;
-  const OW = 1080, OH = Math.round(1080/ar);
-  const c  = makeCanvas(OW, OH);
-  c.getContext('2d').drawImage(bmp, sx, sy, cw, ch, 0, 0, OW, OH);
+/* Zoom hacia adentro centrado: muestra solo la fracción central, ampliada */
+function centerZoom(bmp, fraction, offsetY) {
+  const cw = Math.round(bmp.width  * fraction);
+  const ch = Math.round(bmp.height * fraction);
+  const sx = (bmp.width  - cw) / 2;
+  const sy = Math.round(bmp.height * (offsetY ?? ((1 - fraction) / 2)));
+  const c  = makeCanvas(cw, ch);
+  c.getContext('2d').drawImage(bmp, sx, sy, cw, ch, 0, 0, cw, ch);
   return c;
 }
 
@@ -866,12 +871,18 @@ function makeCanvas(w, h) {
 
 /* ─── PIPELINE DE GENERACIÓN ─── */
 const PIPELINE = [
-  { fn: s => cropBmp(s.bitmaps[0], 0, 0,    1, 0.58), ratio: '3/4'  },
-  { fn: s => cropBmp(s.bitmaps[0], 0, 0.42, 1, 0.58), ratio: '3/4'  },
-  { fn: s => rotateBmp(s.bitmaps[0], 17),              ratio: '3/4'  },
-  { fn: s => cropBmp(s.bitmaps[1], 0, 0,    1, 0.55), ratio: '3/4'  },
-  { fn: s => squareBmp(s.bitmaps[0]),                  ratio: '1/1'  },
-  { fn: s => landscapeBmp(s.bitmaps[0]),               ratio: '16/9' },
+  // 5 - Encuadre abierto: frontal con más piso alrededor (simula foto desde más lejos)
+  { fn: s => addPadding(s.bitmaps[0], 0.07),            ratio: '3/4' },
+  // 6 - Diagonal derecha ~20° (como las fotos 3/4 del ejemplo)
+  { fn: s => rotateBmp(s.bitmaps[0],  20),              ratio: '3/4' },
+  // 7 - Diagonal izquierda ~15° (variante del otro lado)
+  { fn: s => rotateBmp(s.bitmaps[0], -15),              ratio: '3/4' },
+  // 8 - Macro de marca: zoom en la zona central-baja del detalle (botón + patch)
+  { fn: s => centerZoom(s.bitmaps[2], 0.58, 0.28),      ratio: '3/4' },
+  // 9 - Trasero en diagonal ~18° (como fotos 9/10 del ejemplo)
+  { fn: s => rotateBmp(s.bitmaps[1],  18),              ratio: '3/4' },
+  // 10 - Bolsillos traseros: recorte superior del trasero
+  { fn: s => cropBmp(s.bitmaps[1], 0, 0, 1, 0.54),     ratio: '3/4' },
 ];
 
 async function generateAll() {
