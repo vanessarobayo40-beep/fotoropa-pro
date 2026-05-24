@@ -4,6 +4,11 @@ services:
     env: static
     staticPublishPath: .
     buildCommand: ""
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
     routes:
       - type: rewrite
         source: /*
