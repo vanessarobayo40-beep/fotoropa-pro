@@ -561,6 +561,128 @@
     max-width: 980px; margin: 0 auto;
   }
 
+  /* ─────────────────── TABS ─────────────────── */
+  .tab-bar {
+    display: flex; gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    max-width: 980px; margin: 0 auto;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 14px 20px;
+    border: none; background: transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2.5px solid transparent;
+    margin-bottom: -1px;
+    transition: color .2s, border-color .2s;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .tab-btn:hover { color: var(--text2); }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* ─────────────────── COMPRESOR ─────────────────── */
+  #tab-compress { display: none; }
+
+  .comp-upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface2);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    margin-bottom: 20px;
+  }
+  .comp-upload-zone:hover,
+  .comp-upload-zone.dragover {
+    border-color: var(--primary);
+    background: var(--primary-s);
+  }
+  .comp-upload-zone .cu-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
+  .comp-upload-zone .cu-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .comp-upload-zone .cu-sub { font-size: 13px; color: var(--muted); }
+
+  .comp-settings {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 20px; align-items: center;
+  }
+  .comp-settings label {
+    font-size: 13px; font-weight: 600; color: var(--text2);
+  }
+  .quality-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .q-btn {
+    padding: 6px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px; font-weight: 600;
+    color: var(--text2); cursor: pointer;
+    transition: all .15s;
+  }
+  .q-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .q-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+  .comp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  @media (min-width: 520px) { .comp-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 720px) { .comp-grid { grid-template-columns: repeat(5, 1fr); } }
+
+  .comp-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    transition: transform .15s;
+  }
+  .comp-card:hover { transform: translateY(-2px); }
+  .comp-card-img {
+    width: 100%; aspect-ratio: 1/1;
+    object-fit: cover; display: block;
+  }
+  .comp-card-info {
+    padding: 8px 10px;
+  }
+  .comp-card-name {
+    font-size: 10px; font-weight: 600; color: var(--text2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .comp-sizes {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .comp-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 10px; font-weight: 800;
+    background: var(--green-s); color: var(--green);
+  }
+  .comp-badge.pending { background: var(--border); color: var(--muted); }
+  .comp-badge.working { background: var(--primary-s); color: var(--primary); }
+
+  .comp-counter {
+    background: var(--primary-s);
+    border: 1px solid rgba(91,78,232,.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px; font-weight: 600; color: var(--primary);
+    margin-bottom: 16px;
+    display: none;
+  }
+
   /* ─────────────────── ANIMATIONS ─────────────────── */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
@@ -611,8 +733,14 @@
   </div>
 </header>
 
+<!-- ═══ TABS ═══ -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-gen-btn" onclick="switchTab('generate')">✨ Generar 10 fotos</button>
+  <button class="tab-btn"        id="tab-cmp-btn" onclick="switchTab('compress')">🗜️ Comprimir fotos</button>
+</div>
+
 <!-- ═══ HERO ═══ -->
-<div class="hero fade-up">
+<div class="hero fade-up" id="tab-generate">
   <div class="hero-tag">
     <div class="hero-dot"></div>
     Herramienta para vendedores
@@ -715,6 +843,51 @@
     <div class="tip-item">
       <div class="tip-label">🔍 Foto 4 — Interior / talla</div>
       <div class="tip-text">Abre la prenda y muestra la etiqueta de talla sosteniéndola con la mano. O muestra el interior con el forro y el número de referencia. También sirve la rotura principal.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB COMPRESOR ═══ -->
+<div id="tab-compress" style="display:none;">
+  <div style="max-width:980px;margin:0 auto;padding:32px 16px 0;">
+    <div class="card fade-up">
+      <div class="step-hd">
+        <div class="step-n">🗜️</div>
+        <div class="step-title">Comprimir fotos</div>
+      </div>
+      <div class="step-sub">Reduce el peso de tus fotos hasta un 75% sin perder calidad visible. Ideal para WhatsApp e Instagram.</div>
+
+      <!-- Upload zone compresor -->
+      <div class="comp-upload-zone" id="comp-zone" onclick="document.getElementById('comp-input').click()">
+        <input type="file" id="comp-input" accept="image/*" multiple style="display:none" onchange="compHandleFiles(this.files)">
+        <div class="cu-icon">📦</div>
+        <div class="cu-title">Sube tus fotos aquí</div>
+        <div class="cu-sub">Hasta 20 imágenes · Toca o arrastra desde tu galería</div>
+      </div>
+
+      <!-- Calidad -->
+      <div class="comp-settings">
+        <label>Calidad:</label>
+        <div class="quality-btns">
+          <button class="q-btn" data-q="0.65" onclick="setQuality(this)">Máxima compresión</button>
+          <button class="q-btn active" data-q="0.78" onclick="setQuality(this)">Equilibrado ✓</button>
+          <button class="q-btn" data-q="0.88" onclick="setQuality(this)">Alta calidad</button>
+          <button class="q-btn" data-q="0.95" onclick="setQuality(this)">Premium</button>
+        </div>
+      </div>
+
+      <div class="comp-counter" id="comp-counter"></div>
+      <div class="comp-grid" id="comp-grid"></div>
+
+      <button class="btn btn-primary" id="comp-btn" onclick="compressAll()" style="display:none">
+        🗜️ Comprimir todas
+      </button>
+      <button class="btn btn-success" id="comp-dl-btn" onclick="compDownloadZip()" style="display:none;margin-top:10px">
+        ⬇️ Descargar todas comprimidas (ZIP)
+      </button>
+      <button class="btn btn-ghost" id="comp-reset-btn" onclick="compReset()" style="display:none">
+        ↩ Nueva tanda de fotos
+      </button>
     </div>
   </div>
 </div>
@@ -1145,6 +1318,150 @@ function showToast(msg) {
 
 /* ─── UTILS ─── */
 const delay = ms => new Promise(r => setTimeout(r, ms));
+
+/* ═══════════════════════════════════════════════════
+   TABS
+   ═══════════════════════════════════════════════════ */
+function switchTab(tab) {
+  const isGen = tab === 'generate';
+  document.getElementById('tab-generate').style.display  = isGen ? '' : 'none';
+  document.getElementById('tab-compress').style.display  = isGen ? 'none' : '';
+  document.getElementById('tab-gen-btn').classList.toggle('active',  isGen);
+  document.getElementById('tab-cmp-btn').classList.toggle('active', !isGen);
+  // ocultar tips cuando se va al compresor
+  const tipsEl = document.querySelector('.tips-card');
+  if (tipsEl) tipsEl.style.display = isGen ? '' : 'none';
+  // ocultar main-card cuando es compresor
+  document.querySelector('.main-card').style.display = isGen ? '' : 'none';
+}
+
+/* ═══════════════════════════════════════════════════
+   COMPRESOR
+   ═══════════════════════════════════════════════════ */
+const CS = { files: [], results: [], quality: 0.78 };
+
+function setQuality(btn) {
+  document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  CS.quality = parseFloat(btn.dataset.q);
+}
+
+// Drag & drop en la zona del compresor
+(function() {
+  const z = document.getElementById('comp-zone');
+  if (!z) return;
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('dragover'); });
+  z.addEventListener('dragleave',()  => z.classList.remove('dragover'));
+  z.addEventListener('drop', e => {
+    e.preventDefault(); z.classList.remove('dragover');
+    compHandleFiles(e.dataTransfer.files);
+  });
+})();
+
+function compHandleFiles(fileList) {
+  const allowed = Array.from(fileList).filter(f => f.type.startsWith('image/')).slice(0, 20);
+  if (!allowed.length) return;
+  CS.files   = allowed;
+  CS.results = new Array(allowed.length).fill(null);
+
+  const counter = document.getElementById('comp-counter');
+  counter.textContent = `${allowed.length} foto${allowed.length > 1 ? 's' : ''} seleccionada${allowed.length > 1 ? 's' : ''} · listas para comprimir`;
+  counter.style.display = 'block';
+
+  const grid = document.getElementById('comp-grid');
+  grid.innerHTML = '';
+  allowed.forEach((file, i) => {
+    const url  = URL.createObjectURL(file);
+    const card = document.createElement('div');
+    card.className = 'comp-card';
+    card.id = `cc-${i}`;
+    card.innerHTML = `
+      <img class="comp-card-img" src="${url}" alt="">
+      <div class="comp-card-info">
+        <div class="comp-card-name">${file.name}</div>
+        <div class="comp-sizes">
+          <span>${fmtSize(file.size)}</span>
+          <span id="cc-after-${i}">—</span>
+        </div>
+        <span class="comp-badge pending" id="cc-badge-${i}">Pendiente</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  document.getElementById('comp-btn').style.display      = '';
+  document.getElementById('comp-dl-btn').style.display   = 'none';
+  document.getElementById('comp-reset-btn').style.display = 'none';
+}
+
+async function compressAll() {
+  const btn = document.getElementById('comp-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Comprimiendo…';
+
+  for (let i = 0; i < CS.files.length; i++) {
+    const badge = document.getElementById(`cc-badge-${i}`);
+    badge.className = 'comp-badge working';
+    badge.textContent = 'Procesando…';
+
+    const blob  = await compressImage(CS.files[i], CS.quality, 1920);
+    CS.results[i] = blob;
+
+    const pct = Math.round((1 - blob.size / CS.files[i].size) * 100);
+    document.getElementById(`cc-after-${i}`).textContent = fmtSize(blob.size);
+    badge.className = 'comp-badge';
+    badge.textContent = `−${pct}%`;
+  }
+
+  btn.style.display = 'none';
+  document.getElementById('comp-dl-btn').style.display    = '';
+  document.getElementById('comp-reset-btn').style.display = '';
+}
+
+async function compressImage(file, quality, maxDim) {
+  const bmp = await createImageBitmap(file);
+  let w = bmp.width, h = bmp.height;
+  if (w > maxDim || h > maxDim) {
+    if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+    else        { w = Math.round(w * maxDim / h); h = maxDim; }
+  }
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
+  return new Promise(res => cv.toBlob(res, 'image/jpeg', quality));
+}
+
+async function compDownloadZip() {
+  const zip = new JSZip();
+  CS.results.forEach((blob, i) => {
+    if (!blob) return;
+    const name = CS.files[i].name.replace(/\.[^.]+$/, '') + '_compressed.jpg';
+    zip.file(name, blob);
+  });
+  const out = await zip.generateAsync({ type: 'blob' });
+  const a   = document.createElement('a');
+  a.href     = URL.createObjectURL(out);
+  a.download = 'fotos_comprimidas.zip';
+  a.click();
+}
+
+function compReset() {
+  CS.files = []; CS.results = [];
+  document.getElementById('comp-grid').innerHTML    = '';
+  document.getElementById('comp-counter').style.display = 'none';
+  document.getElementById('comp-btn').style.display      = 'none';
+  document.getElementById('comp-dl-btn').style.display   = 'none';
+  document.getElementById('comp-reset-btn').style.display = 'none';
+  document.getElementById('comp-btn').disabled = false;
+  document.getElementById('comp-btn').textContent = '🗜️ Comprimir todas';
+  document.getElementById('comp-input').value = '';
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1048576)    return (bytes / 1024).toFixed(0) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
 
 /* ─── PWA: INSTALL PROMPT ─── */
 let deferredPrompt = null;
