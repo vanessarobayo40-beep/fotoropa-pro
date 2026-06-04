@@ -858,15 +858,25 @@
       <div class="step-sub">Reduce el peso de tus fotos hasta un 75% sin perder calidad visible. Ideal para WhatsApp e Instagram.</div>
 
       <!-- Upload zone compresor -->
-      <div class="comp-upload-zone" id="comp-zone" onclick="document.getElementById('comp-input').click()">
+      <label for="comp-input" class="comp-upload-zone" id="comp-zone">
         <input type="file" id="comp-input" accept="image/*" multiple style="display:none" onchange="compHandleFiles(this.files)">
         <div class="cu-icon">📦</div>
-        <div class="cu-title">Sube tus fotos aquí</div>
-        <div class="cu-sub">Hasta 20 imágenes · Toca o arrastra desde tu galería</div>
+        <div class="cu-title">Toca aquí para subir tus fotos</div>
+        <div class="cu-sub">Hasta 20 imágenes · JPEG · PNG · HEIC · WEBP</div>
+      </label>
+
+      <!-- Formato -->
+      <div class="comp-settings">
+        <label>Formato de salida:</label>
+        <div class="quality-btns" id="fmt-btns">
+          <button class="q-btn active" data-fmt="image/jpeg" data-ext="jpg"  onclick="setFormat(this)">JPEG</button>
+          <button class="q-btn"        data-fmt="image/webp" data-ext="webp" onclick="setFormat(this)">WEBP</button>
+          <button class="q-btn"        data-fmt="image/png"  data-ext="png"  onclick="setFormat(this)">PNG</button>
+        </div>
       </div>
 
       <!-- Calidad -->
-      <div class="comp-settings">
+      <div class="comp-settings" id="quality-row">
         <label>Calidad:</label>
         <div class="quality-btns">
           <button class="q-btn" data-q="0.65" onclick="setQuality(this)">Máxima compresión</button>
@@ -1334,12 +1344,21 @@ function switchTab(tab) {
 /* ═══════════════════════════════════════════════════
    COMPRESOR
    ═══════════════════════════════════════════════════ */
-const CS = { files: [], results: [], quality: 0.78 };
+const CS = { files: [], results: [], quality: 0.78, format: 'image/jpeg', ext: 'jpg' };
 
 function setQuality(btn) {
-  document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+  btn.closest('.quality-btns').querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   CS.quality = parseFloat(btn.dataset.q);
+}
+
+function setFormat(btn) {
+  document.getElementById('fmt-btns').querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  CS.format = btn.dataset.fmt;
+  CS.ext    = btn.dataset.ext;
+  // PNG es lossless — ocultar calidad
+  document.getElementById('quality-row').style.display = CS.format === 'image/png' ? 'none' : '';
 }
 
 // Drag & drop en la zona del compresor
@@ -1424,14 +1443,17 @@ async function compressImage(file, quality, maxDim) {
   const cv = document.createElement('canvas');
   cv.width = w; cv.height = h;
   cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
-  return new Promise(res => cv.toBlob(res, 'image/jpeg', quality));
+  const fmt = CS.format || 'image/jpeg';
+  const q   = fmt === 'image/png' ? undefined : quality;
+  return new Promise(res => cv.toBlob(res, fmt, q));
 }
 
 async function compDownloadZip() {
   const zip = new JSZip();
+  const ext = CS.ext || 'jpg';
   CS.results.forEach((blob, i) => {
     if (!blob) return;
-    const name = CS.files[i].name.replace(/\.[^.]+$/, '') + '_compressed.jpg';
+    const name = CS.files[i].name.replace(/\.[^.]+$/, '') + `_compressed.${ext}`;
     zip.file(name, blob);
   });
   const out = await zip.generateAsync({ type: 'blob' });
