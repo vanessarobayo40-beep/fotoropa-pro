@@ -986,7 +986,9 @@ function checkReady() {
   document.getElementById('btn-generate').disabled = !S.bitmaps.every(Boolean);
 }
 
-/* ─── PROCESAMIENTO DE IMÁGENES ─── */
+/* ═══════════════════════════════════════════════════
+   MOTOR DE IMÁGENES — sin tiles, sin artefactos
+   ═══════════════════════════════════════════════════ */
 
 function makeCanvas(w, h) {
   const c = document.createElement('canvas');
@@ -994,118 +996,97 @@ function makeCanvas(w, h) {
   return c;
 }
 
-/* Muestrea el piso real en un tile 512×512 desde las 4 esquinas (30% de la foto cada una).
-   Así el patrón de relleno coincide exactamente con el piso de esa foto. */
-function sampleFloor(bmp) {
-  const TILE = 512;
-  const half = TILE / 2;
-  const pw   = Math.round(bmp.width  * 0.30);
-  const ph   = Math.round(bmp.height * 0.30);
-  const out  = makeCanvas(TILE, TILE);
-  const ctx  = out.getContext('2d');
-  ctx.drawImage(bmp, 0,              0,              pw, ph, 0,    0,    half, half); // arriba-izq
-  ctx.drawImage(bmp, bmp.width - pw, 0,              pw, ph, half, 0,    half, half); // arriba-der
-  ctx.drawImage(bmp, 0,              bmp.height - ph, pw, ph, 0,    half, half, half); // abajo-izq
-  ctx.drawImage(bmp, bmp.width - pw, bmp.height - ph, pw, ph, half, half, half, half); // abajo-der
+/* Promedia el color del piso muestreando los 4 bordes de la foto.
+   Devuelve un string CSS rgb() para usar como fill sólido. */
+function floorColor(bmp) {
+  const px = Math.round(bmp.width  * 0.18);
+  const py = Math.round(bmp.height * 0.18);
+  const tiny = makeCanvas(4, 4);
+  const tc   = tiny.getContext('2d');
+  // Esquina inf-izq (la más segura — suele ser puro piso)
+  tc.drawImage(bmp, 0, bmp.height - py, px, py, 0, 0, 2, 2);
+  // Esquina inf-der
+  tc.drawImage(bmp, bmp.width - px, bmp.height - py, px, py, 2, 0, 2, 2);
+  const d = tc.getImageData(0, 0, 4, 2).data;
+  let r = 0, g = 0, b = 0;
+  for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
+  const n = d.length / 4;
+  return `rgb(${r/n|0},${g/n|0},${b/n|0})`;
+}
+
+/* Rota la imagen con fill de COLOR SÓLIDO del piso real (sin tiles, sin artefactos).
+   Luego recorta al tamaño ORIGINAL para que no queden bordes vacíos visibles. */
+function rotateCrop(bmp, deg) {
+  const r   = deg * Math.PI / 180;
+  const sin = Math.abs(Math.sin(r));
+  const cos = Math.abs(Math.cos(r));
+  const W   = Math.round(bmp.width  * cos + bmp.height * sin);
+  const H   = Math.round(bmp.width  * sin + bmp.height * cos);
+
+  // Canvas de rotación con fill de color sólido del piso
+  const tmp = makeCanvas(W, H);
+  const tc  = tmp.getContext('2d');
+  tc.fillStyle = floorColor(bmp);
+  tc.fillRect(0, 0, W, H);
+  tc.save();
+  tc.translate(W / 2, H / 2);
+  tc.rotate(r);
+  tc.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+  tc.restore();
+
+  // Recorta al tamaño original desde el centro (elimina esquinas vacías)
+  const cx  = (W - bmp.width)  / 2;
+  const cy  = (H - bmp.height) / 2;
+  const out = makeCanvas(bmp.width, bmp.height);
+  out.getContext('2d').drawImage(tmp, cx, cy, bmp.width, bmp.height, 0, 0, bmp.width, bmp.height);
   return out;
 }
 
-/* Agrega grano fotográfico sutil (overlay mode a baja opacidad) */
-function addGrain(canvas, opacity) {
-  const w   = canvas.width;
-  const h   = canvas.height;
-  const ctx = canvas.getContext('2d');
-  // Tile de ruido pequeño que se repite (rápido)
-  const NW  = 256, NH = 256;
-  const nc  = makeCanvas(NW, NH);
-  const nd  = nc.getContext('2d').createImageData(NW, NH);
-  for (let i = 0; i < nd.data.length; i += 4) {
-    const v = Math.random() * 255 | 0;
-    nd.data[i] = nd.data[i+1] = nd.data[i+2] = v;
-    nd.data[i+3] = 255;
-  }
-  nc.getContext('2d').putImageData(nd, 0, 0);
-  ctx.save();
-  ctx.globalAlpha = opacity;
-  ctx.globalCompositeOperation = 'overlay';
-  // Repite el tile para cubrir el canvas
-  for (let x = 0; x < w; x += NW)
-    for (let y = 0; y < h; y += NH)
-      ctx.drawImage(nc, x, y);
-  ctx.restore();
-}
-
-/* Viñeta suave */
-function addVignette(canvas, strength) {
-  const w   = canvas.width, h = canvas.height;
-  const ctx = canvas.getContext('2d');
-  const cx  = w / 2, cy = h / 2;
-  const r   = Math.sqrt(cx*cx + cy*cy);
-  const g   = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(1, `rgba(0,0,0,${strength})`);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, w, h);
-}
-
-/* Rota usando piso real + grano + viñeta → resultado fotográfico */
-function rotateBmpPro(bmp, deg) {
-  const floor = sampleFloor(bmp);
-  const r     = deg * Math.PI / 180;
-  const sin   = Math.abs(Math.sin(r));
-  const cos   = Math.abs(Math.cos(r));
-  const W     = Math.round(bmp.width * cos + bmp.height * sin);
-  const H     = Math.round(bmp.width * sin + bmp.height * cos);
-
-  const c   = makeCanvas(W, H);
-  const ctx = c.getContext('2d');
-
-  // 1. Rellena con patrón de piso real
-  const pat = ctx.createPattern(floor, 'repeat');
-  ctx.fillStyle = pat;
-  ctx.fillRect(0, 0, W, H);
-
-  // 2. Grano en el relleno ANTES de dibujar la prenda
-  addGrain(c, 0.04);
-
-  // 3. Prenda rotada
-  ctx.save();
-  ctx.translate(W / 2, H / 2);
-  ctx.rotate(r);
-  ctx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
-  ctx.restore();
-
-  // 4. Viñeta muy sutil sobre todo
-  addVignette(c, 0.10);
-
-  return c;
-}
-
-/* Encuadre abierto: más piso alrededor usando el piso real de la foto */
-function addSmartPadding(bmp, pad) {
-  const floor = sampleFloor(bmp);
+/* Encuadre abierto: padding con color SÓLIDO del piso real + gradiente de fusión suave */
+function openFrame(bmp, pad) {
+  const color = floorColor(bmp);
   const pw    = Math.round(bmp.width  * pad);
   const ph    = Math.round(bmp.height * pad);
-  const c     = makeCanvas(bmp.width + pw * 2, bmp.height + ph * 2);
+  const W     = bmp.width  + pw * 2;
+  const H     = bmp.height + ph * 2;
+  const c     = makeCanvas(W, H);
   const ctx   = c.getContext('2d');
 
-  // Fondo con piso real
-  const pat = ctx.createPattern(floor, 'repeat');
-  ctx.fillStyle = pat;
-  ctx.fillRect(0, 0, c.width, c.height);
-
-  // Grano en el fondo
-  addGrain(c, 0.04);
+  // Fondo sólido de color del piso
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, W, H);
 
   // Foto centrada
   ctx.drawImage(bmp, pw, ph);
 
-  // Viñeta
-  addVignette(c, 0.08);
+  // Fusión suave en los bordes (difumina la unión entre foto y relleno)
+  const grad = ctx.createLinearGradient(0, ph, 0, ph + 40);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(pw, ph, bmp.width, 40); // borde superior de la foto
+
+  const grad2 = ctx.createLinearGradient(0, ph + bmp.height - 40, 0, ph + bmp.height);
+  grad2.addColorStop(0, 'transparent');
+  grad2.addColorStop(1, color);
+  ctx.fillStyle = grad2;
+  ctx.fillRect(pw, ph + bmp.height - 40, bmp.width, 40); // borde inferior
+
   return c;
 }
 
-/* Zoom a zona específica — salida siempre al tamaño original (sin perder resolución) */
+/* Crop a tamaño NATIVO (no escala — máxima nitidez) */
+function cropNative(bmp, x, y, w, h) {
+  const sx = Math.round(bmp.width  * x);
+  const sy = Math.round(bmp.height * y);
+  const sw = Math.round(bmp.width  * w);
+  const sh = Math.round(bmp.height * h);
+  const c  = makeCanvas(sw, sh);
+  c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
+  return c;
+}
+
+/* Zoom sobre una zona y expande a la resolución original (misma que las fotos reales) */
 function zoomArea(bmp, x, y, w, h) {
   const sx = Math.round(bmp.width  * x);
   const sy = Math.round(bmp.height * y);
@@ -1113,36 +1094,23 @@ function zoomArea(bmp, x, y, w, h) {
   const sh = Math.round(bmp.height * h);
   const c  = makeCanvas(bmp.width, bmp.height);
   c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, bmp.width, bmp.height);
-  addGrain(c, 0.015);
   return c;
 }
 
-/* Recorte escalado a resolución original */
-function cropBmp(bmp, x, y, w, h) {
-  const sw = Math.round(bmp.width  * w);
-  const sh = Math.round(bmp.height * h);
-  const sx = Math.round(bmp.width  * x);
-  const sy = Math.round(bmp.height * y);
-  const c  = makeCanvas(bmp.width, bmp.height);
-  c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, bmp.width, bmp.height);
-  addGrain(c, 0.015);
-  return c;
-}
-
-/* ─── PIPELINE DE GENERACIÓN ─── */
+/* ─── PIPELINE ─── */
 const PIPELINE = [
-  // 5 — Encuadre abierto: más piso real alrededor (foto tomada desde más lejos)
-  { fn: s => addSmartPadding(s.bitmaps[0], 0.09),                   ratio: '3/4' },
-  // 6 — Diagonal derecha ~20° con piso real como fondo
-  { fn: s => rotateBmpPro(s.bitmaps[0],  20),                       ratio: '3/4' },
-  // 7 — Diagonal izquierda ~−15° con piso real como fondo
-  { fn: s => rotateBmpPro(s.bitmaps[0], -15),                       ratio: '3/4' },
-  // 8 — Macro de marca: zoom en zona centro-baja del detalle (botón + patch)
-  { fn: s => zoomArea(s.bitmaps[2], 0.10, 0.28, 0.80, 0.65),       ratio: '3/4' },
-  // 9 — Trasero en diagonal ~18° con piso real
-  { fn: s => rotateBmpPro(s.bitmaps[1],  18),                       ratio: '3/4' },
-  // 10 — Bolsillos traseros: zoom en mitad superior del trasero
-  { fn: s => cropBmp(s.bitmaps[1], 0, 0, 1, 0.54),                  ratio: '3/4' },
+  // 5 — Encuadre abierto: más piso visible alrededor (simula foto desde más lejos)
+  { fn: s => openFrame(s.bitmaps[0], 0.10),                         ratio: '3/4' },
+  // 6 — Diagonal derecha 20° + recorte al tamaño original (sin esquinas vacías)
+  { fn: s => rotateCrop(s.bitmaps[0],  20),                         ratio: '3/4' },
+  // 7 — Diagonal izquierda −15° + recorte
+  { fn: s => rotateCrop(s.bitmaps[0], -15),                         ratio: '3/4' },
+  // 8 — Macro de marca: zoom en centro-bajo del detalle (botón + patch), res. original
+  { fn: s => zoomArea(s.bitmaps[2], 0.08, 0.26, 0.84, 0.66),       ratio: '3/4' },
+  // 9 — Trasero diagonal 18° + recorte
+  { fn: s => rotateCrop(s.bitmaps[1],  18),                         ratio: '3/4' },
+  // 10 — Bolsillos traseros: crop nativo de mitad superior del trasero
+  { fn: s => cropNative(s.bitmaps[1], 0, 0, 1, 0.55),               ratio: '3/4' },
 ];
 
 async function generateAll() {
