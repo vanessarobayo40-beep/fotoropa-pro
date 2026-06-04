@@ -869,8 +869,8 @@
       <div class="comp-settings">
         <label>Formato de salida:</label>
         <div class="quality-btns" id="fmt-btns">
-          <button class="q-btn active" data-fmt="image/jpeg" data-ext="jpg"  onclick="setFormat(this)">JPEG</button>
-          <button class="q-btn"        data-fmt="image/webp" data-ext="webp" onclick="setFormat(this)">WEBP</button>
+          <button class="q-btn"        data-fmt="image/jpeg" data-ext="jpg"  onclick="setFormat(this)">JPEG</button>
+          <button class="q-btn active" data-fmt="image/webp" data-ext="webp" onclick="setFormat(this)">WEBP ✓</button>
           <button class="q-btn"        data-fmt="image/png"  data-ext="png"  onclick="setFormat(this)">PNG</button>
         </div>
       </div>
@@ -892,8 +892,11 @@
       <button class="btn btn-primary" id="comp-btn" onclick="compressAll()" style="display:none">
         🗜️ Comprimir todas
       </button>
-      <button class="btn btn-success" id="comp-dl-btn" onclick="compDownloadZip()" style="display:none;margin-top:10px">
-        ⬇️ Descargar todas comprimidas (ZIP)
+      <button class="btn btn-success" id="comp-gallery-btn" onclick="guardarEnGaleria()" style="display:none;margin-top:10px">
+        🖼️ Guardar todas en galería
+      </button>
+      <button class="btn btn-success" id="comp-dl-btn" onclick="compDownloadZip()" style="display:none;margin-top:10px;background:linear-gradient(135deg,#059669,#34D399)">
+        ⬇️ Descargar ZIP (respaldo)
       </button>
       <button class="btn btn-ghost" id="comp-reset-btn" onclick="compReset()" style="display:none">
         ↩ Nueva tanda de fotos
@@ -1344,7 +1347,7 @@ function switchTab(tab) {
 /* ═══════════════════════════════════════════════════
    COMPRESOR
    ═══════════════════════════════════════════════════ */
-const CS = { files: [], results: [], quality: 0.78, format: 'image/jpeg', ext: 'jpg' };
+const CS = { files: [], results: [], quality: 0.78, format: 'image/webp', ext: 'webp' };
 
 function setQuality(btn) {
   btn.closest('.quality-btns').querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
@@ -1405,7 +1408,8 @@ function compHandleFiles(fileList) {
   });
 
   document.getElementById('comp-btn').style.display      = '';
-  document.getElementById('comp-dl-btn').style.display   = 'none';
+  document.getElementById('comp-gallery-btn').style.display = 'none';
+  document.getElementById('comp-dl-btn').style.display      = 'none';
   document.getElementById('comp-reset-btn').style.display = 'none';
 }
 
@@ -1429,8 +1433,9 @@ async function compressAll() {
   }
 
   btn.style.display = 'none';
-  document.getElementById('comp-dl-btn').style.display    = '';
-  document.getElementById('comp-reset-btn').style.display = '';
+  document.getElementById('comp-gallery-btn').style.display = '';
+  document.getElementById('comp-dl-btn').style.display      = '';
+  document.getElementById('comp-reset-btn').style.display   = '';
 }
 
 async function compressImage(file, quality, maxDim) {
@@ -1468,11 +1473,51 @@ function compReset() {
   document.getElementById('comp-grid').innerHTML    = '';
   document.getElementById('comp-counter').style.display = 'none';
   document.getElementById('comp-btn').style.display      = 'none';
-  document.getElementById('comp-dl-btn').style.display   = 'none';
+  document.getElementById('comp-gallery-btn').style.display = 'none';
+  document.getElementById('comp-dl-btn').style.display      = 'none';
   document.getElementById('comp-reset-btn').style.display = 'none';
   document.getElementById('comp-btn').disabled = false;
   document.getElementById('comp-btn').textContent = '🗜️ Comprimir todas';
   document.getElementById('comp-input').value = '';
+}
+
+/* Guarda todas las fotos comprimidas en la galería del celular.
+   Usa Web Share API (nativo en Android/iOS) con fallback a descarga individual. */
+async function guardarEnGaleria() {
+  const btn = document.getElementById('comp-gallery-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando…';
+
+  const ext   = CS.ext || 'webp';
+  const mime  = CS.format || 'image/webp';
+  const files = CS.results
+    .map((blob, i) => blob ? new File([blob], CS.files[i].name.replace(/\.[^.]+$/, '') + `_comprimida.${ext}`, { type: mime }) : null)
+    .filter(Boolean);
+
+  // Intenta Web Share API (guarda directo en galería en Android/iOS)
+  if (files.length && navigator.canShare && navigator.canShare({ files })) {
+    try {
+      await navigator.share({ files, title: 'Fotos comprimidas - FotoRopa Pro' });
+      btn.disabled = false;
+      btn.textContent = '🖼️ Guardar todas en galería';
+      return;
+    } catch (e) {
+      // Usuario canceló o no disponible — caemos al fallback
+    }
+  }
+
+  // Fallback: descarga una por una con pausa breve entre cada una
+  for (let i = 0; i < files.length; i++) {
+    const a = document.createElement('a');
+    a.href     = URL.createObjectURL(CS.results[i]);
+    a.download = files[i].name;
+    a.click();
+    await delay(400); // pausa para que el navegador procese cada descarga
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🖼️ Guardar todas en galería';
+  showToast(`✓ ${files.length} fotos guardadas`);
 }
 
 function fmtSize(bytes) {
